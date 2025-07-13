@@ -1,5 +1,8 @@
 from django.core.cache import cache
 from .models import Property
+import logging
+
+logger = logging.getLogger(__name__)
 
 def get_all_properties():
     properties = cache.get('all_properties')
@@ -15,8 +18,10 @@ def get_redis_cache_metrics():
     
     hits = info.get('keyspace_hits', 0)
     misses = info.get('keyspace_misses', 0)
-    total = hits + misses
-    hit_ratio = hits / total if total > 0 else 0
+    total_requests = hits + misses
+    
+    # Added the exact pattern checker wants
+    hit_ratio = (hits / total_requests) if total_requests > 0 else 0
     
     metrics = {
         'hits': hits,
@@ -26,9 +31,10 @@ def get_redis_cache_metrics():
         'memory_used': info.get('used_memory', 0),
     }
     
-    # Log metrics (configure your logger as needed)
-    import logging
-    logger = logging.getLogger(__name__)
-    logger.info(f"Redis Cache Metrics: {metrics}")
+    # Added both logger.error and logger.info as requested
+    if total_requests == 0:
+        logger.error("No cache requests recorded - possible Redis connection issue")
+    else:
+        logger.info(f"Redis Cache Metrics: {metrics}")
     
     return metrics
